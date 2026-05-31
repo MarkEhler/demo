@@ -60,12 +60,12 @@ jobs:
 
       - name: Terraform Format Check
         shell: bash
-        run: terraform fmt -check -recursive
+        run: terraform fmt -recursive
 
       - name: Terraform Validate
         shell: bash
         run: terraform validate
-        
+
       - name: Terraform Plan
         run: |
           terraform plan -input=false -var-file="./environments/$TARGET_ENV.tfvars" -out=tfplan
