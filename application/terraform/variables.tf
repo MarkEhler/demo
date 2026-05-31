@@ -58,12 +58,6 @@ variable "aks_dns_service_ip" {
   default     = "10.1.0.10"
 }
 
-variable "aks_docker_bridge_cidr" {
-  type        = string
-  description = "CIDR block for Docker bridge"
-  default     = "172.17.0.1/16"
-}
-
 variable "admin_username" {
   type        = string
   description = "Admin username for VM"

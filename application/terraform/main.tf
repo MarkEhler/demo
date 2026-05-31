@@ -161,7 +161,6 @@ resource "azurerm_kubernetes_cluster" "MarkEhler_demo_aks" {
     network_plugin    = "azure"
     service_cidr      = var.aks_service_cidr
     dns_service_ip    = var.aks_dns_service_ip
-    docker_bridge_cidr = var.aks_docker_bridge_cidr
   }
 
   tags = {
