@@ -1,0 +1,25 @@
+name: deploy-prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Which branch would you like to deploy?"
+        required: true
+        type: string
+jobs:
+  deploy:
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [COMS, DICE, TileServer]
+    uses: DisasterTechInc/pratus-deployment/.github/workflows/deployment-reusable-workflow.yaml@main
+    with:
+      branch: ${{ inputs.branch }}
+      component: ${{ matrix.component }}
+      overlay_path: pratus/overlays/prod
+    secrets:
+      DEPLOYER_APP_ID: ${{ secrets.DEPLOYER_APP_ID }}
+      DEPLOYER_APP_PRIVATE_KEY: ${{ secrets.DEPLOYER_APP_PRIVATE_KEY }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}

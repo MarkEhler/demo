@@ -1,0 +1,104 @@
+name: Initial Cluster Setup
+run-name: Initial Cluster Setup - ${{ inputs.environment }}
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Which environment do you want to deploy to?"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - qa
+          - staging
+          - prod
+          - test
+          - test2
+jobs:
+  deploy:
+    name: Initial Cluster Setup - ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v3
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Set up kubelogin for non-interactive login
+      uses: azure/use-kubelogin@v1.2
+      with:
+        kubelogin-version: 'v0.0.24'
+
+    - name: Set AKS Context
+      uses: azure/aks-set-context@v4
+      with:
+        admin: 'false'
+        cluster-name: pratus-${{ inputs.environment }}
+        resource-group: pratus-${{ inputs.environment }}
+        use-kubelogin: 'true'
+
+    - name: Install Helm
+      uses: azure/setup-helm@v4.3.0
+      with:
+        version: 'latest'
+      id: install
+    
+    - name: Add Helm repos
+      run: |
+        helm repo add external-secrets https://charts.external-secrets.io
+        helm repo add jetstack https://charts.jetstack.io
+        helm repo add argo https://argoproj.github.io/argo-helm
+        helm repo update
+
+    - name: Install Argo CD
+      run: |
+        kubectl create namespace argocd || true
+        helm upgrade --install argocd argo/argo-cd --namespace argocd -f ./argocd/helm-values-${{ inputs.environment }}.yaml
+
+    - name: Wait for Argo CD pods to be ready
+      run: |
+        kubectl -n argocd wait --for=condition=Available deployment/argocd-server --timeout=180s
+    
+    - name: Expose Argo CD Server with LoadBalancer
+      run: |
+        kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+
+    - name: Install External Secrets Operator via Helm
+      run: |
+        helm upgrade --install external-secrets external-secrets/external-secrets \
+          --namespace external-secrets \
+          --create-namespace \
+          --set installCRDs=true \
+          --version 0.18.0
+    
+    - name: Wait for External Secrets Operator to be ready
+      run: |
+        kubectl -n external-secrets wait deployment/external-secrets --for=condition=Available --timeout=180s
+        kubectl -n external-secrets wait deployment/external-secrets-webhook --for=condition=Available --timeout=180s
+    
+    - name: Deploy External Secrets
+      run: kubectl apply -k ./platform-services/external-secrets-operator/overlays/${{ inputs.environment }}
+
+    - name: Install cert-manager
+      run: |
+        helm upgrade --install cert-manager jetstack/cert-manager \
+          --namespace cert-manager \
+          --create-namespace \
+          --version v1.18.2 \
+          --set installCRDs=true
+        kubectl apply -f ./platform-services/cert-manager/
+
+    - name: Install Nginx Ingress
+      run: kubectl apply -k ./platform-services/nginx-ingress/overlays/${{ inputs.environment }}
+
+    - name: Configure Github Authentication
+      run: |
+        kubectl apply -f ./argocd/argocd-github-pratus-deployment-repo.yaml
+    
+    - name: Create Argo CD Application
+      run: |
+        kubectl apply -k ./argocd/overlays/${{ inputs.environment }}/
