@@ -19,38 +19,32 @@ variable "project_prefix" {
 variable "vnet_cidr" {
   type        = string
   description = "CIDR block for virtual network"
-  default     = "10.0.0.0/16"
+  default     = "10.0.0.0/24"
 }
 
-variable "vm_subnet_cidr" {
+variable "subnet_cidr" {
   type        = string
-  description = "CIDR block for VM subnet"
-  default     = "10.0.1.0/24"
-}
-
-variable "aks_subnet_cidr" {
-  type        = string
-  description = "CIDR block for AKS subnet"
-  default     = "10.0.2.0/24"
+  description = "CIDR block for subnet (VM and AKS)"
+  default     = "10.0.0.0/25"
 }
 
 variable "vm_size" {
   type        = string
   description = "VM size for both standalone VM and AKS nodes"
-  default     = "Standard_B2s"
+  default     = "Standard_DC2s_v3"
 }
 
 variable "aks_node_count" {
   type        = number
   description = "Number of nodes in AKS cluster"
-  default     = 2
+  default     = 1
 }
 
 variable "aks_service_cidr" {
   type        = string
   description = "CIDR block for AKS services"
-  default     = "10.1.0.0/16"
-}
+  default     = "10.1.0.0/24"
+
 
 variable "aks_dns_service_ip" {
   type        = string

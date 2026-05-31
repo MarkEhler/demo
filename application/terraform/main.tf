@@ -32,20 +32,12 @@ resource "azurerm_virtual_network" "MarkEhler_demo" {
   resource_group_name = azurerm_resource_group.MarkEhler_demo.name
 }
 
-# VM Subnet
-resource "azurerm_subnet" "vm_subnet" {
-  name                 = "${var.project_prefix}-vm-subnet"
+# Shared Subnet for VM and AKS
+resource "azurerm_subnet" "shared_subnet" {
+  name                 = "${var.project_prefix}-subnet"
   resource_group_name  = azurerm_resource_group.MarkEhler_demo.name
   virtual_network_name = azurerm_virtual_network.MarkEhler_demo.name
-  address_prefixes     = [var.vm_subnet_cidr]
-}
-
-# AKS Subnet
-resource "azurerm_subnet" "aks_subnet" {
-  name                 = "${var.project_prefix}-aks-subnet"
-  resource_group_name  = azurerm_resource_group.MarkEhler_demo.name
-  virtual_network_name = azurerm_virtual_network.MarkEhler_demo.name
-  address_prefixes     = [var.aks_subnet_cidr]
+  address_prefixes     = [var.subnet_cidr]
 }
 
 # Network Security Group for VM
@@ -91,7 +83,7 @@ resource "azurerm_network_interface" "vm_nic" {
 
   ip_configuration {
     name                          = "primary"
-    subnet_id                     = azurerm_subnet.vm_subnet.id
+    subnet_id                     = azurerm_subnet.shared_subnet.id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.vm_pip.id
   }
@@ -103,6 +95,7 @@ resource "azurerm_public_ip" "vm_pip" {
   location            = azurerm_resource_group.MarkEhler_demo.location
   resource_group_name = azurerm_resource_group.MarkEhler_demo.name
   allocation_method   = "Static"
+  sku                 = "Standard"
 }
 
 # Linux Virtual Machine
@@ -150,7 +143,7 @@ resource "azurerm_kubernetes_cluster" "MarkEhler_demo_aks" {
     name           = "default"
     node_count     = var.aks_node_count
     vm_size        = var.vm_size
-    vnet_subnet_id = azurerm_subnet.aks_subnet.id
+    vnet_subnet_id = azurerm_subnet.shared_subnet.id
   }
 
   identity {
