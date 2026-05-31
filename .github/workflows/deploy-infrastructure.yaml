@@ -68,7 +68,7 @@ jobs:
 
       - name: Terraform Plan
         run: |
-          terraform plan -input=false -var-file="./environments/$TARGET_ENV.tfvars" -out=tfplan
+          terraform plan -input=false -out=tfplan
           terraform show -no-color tfplan > tfplan.txt
           sed -E 's/^(\s*)\+/\1🟢 **Add**/; s/^(\s*)\~/\1🟡 **Change**/; s/^(\s*)\-/\1🔴 **Remove**/' tfplan.txt > plan.md
       
