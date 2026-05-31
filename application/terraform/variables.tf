@@ -44,7 +44,7 @@ variable "aks_service_cidr" {
   type        = string
   description = "CIDR block for AKS services"
   default     = "10.1.0.0/24"
-
+}
 
 variable "aks_dns_service_ip" {
   type        = string
