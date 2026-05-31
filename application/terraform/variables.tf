@@ -74,6 +74,7 @@ variable "ssh_public_key" {
   type        = string
   description = "SSH public key for VM authentication"
   sensitive   = true
+  default     = "null"
 }
 
 variable "allowed_ssh_cidr" {
