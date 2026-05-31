@@ -49,6 +49,7 @@ jobs:
 
       - name: Terraform Init
         shell: bash
+        working-directory: application/terraform
         env:
           GIT_ASKPASS: /bin/echo
           GIT_USERNAME: x-access-token
@@ -60,13 +61,16 @@ jobs:
 
       - name: Terraform Format Check
         shell: bash
+        working-directory: application/terraform
         run: terraform fmt -recursive
 
       - name: Terraform Validate
         shell: bash
+        working-directory: application/terraform
         run: terraform validate
 
       - name: Terraform Plan
+        working-directory: application/terraform
         run: |
           terraform plan -input=false -out=tfplan
           terraform show -no-color tfplan > tfplan.txt
