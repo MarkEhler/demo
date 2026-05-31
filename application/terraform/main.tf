@@ -54,18 +54,28 @@ resource "azurerm_network_security_group" "vm_nsg" {
   location            = azurerm_resource_group.MarkEhler_demo.location
   resource_group_name = azurerm_resource_group.MarkEhler_demo.name
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "Tcp"
-    cidr_blocks = [var.allowed_ssh_cidr]
+  security_rule {
+    name                       = "Allow-SSH"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = var.allowed_ssh_cidr
+    destination_address_prefix = "*"
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  security_rule {
+    name                       = "Allow-All-Outbound"
+    priority                   = 200
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
   }
 
   tags = {
