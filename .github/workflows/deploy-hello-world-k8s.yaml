@@ -41,6 +41,6 @@ jobs:
 
       - name: Deploy hello world pod
         run: |
-          kubectl apply -f .github/workflows/agent_deployment/hello-world-pod.yaml
+          kubectl apply -f .github/application/deploy/hello-world-pod.yaml
           kubectl wait --for=condition=Ready pod/hello-world --timeout=120s
           kubectl get pod hello-world -o wide
