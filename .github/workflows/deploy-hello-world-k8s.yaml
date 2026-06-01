@@ -3,6 +3,10 @@ name: Deploy Hello World Pod to AKS
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+  
 jobs:
   hello-world-k8s:
     runs-on: ubuntu-latest

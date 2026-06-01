@@ -7,6 +7,10 @@ on:
     #     description: 'Azure VM ID (optional; uses Terraform output if empty)'
     #     required: false
 
+permissions:
+  id-token: write
+  contents: read
+  
 jobs:
   hello-world-vm-deploy:
     runs-on: ubuntu-latest
