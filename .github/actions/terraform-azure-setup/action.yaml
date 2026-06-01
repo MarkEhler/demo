@@ -2,12 +2,6 @@ name: Terraform Azure Setup
 description: Logs into Azure, sets ARM vars, installs Terraform, and runs init/fmt/validate
 
 inputs:
-  environment:
-    required: true
-    description: Name of the environment
-  AZURE_CREDENTIALS:
-    required: true
-    description: Azure service principal credentials (JSON string)
   deployer_app_id:
     description: 'GitHub App ID'
     required: true
@@ -59,7 +53,7 @@ runs:
       run: |
           git config --global credential.helper store
           git config --global url."https://x-access-token:${GIT_PASSWORD}@github.com/".insteadOf "https://github.com/"
-          terraform init -backend-config="key=${{ inputs.environment }}.terraform.tfstate"
+          terraform init
 
     - name: Terraform Format Check
       shell: bash

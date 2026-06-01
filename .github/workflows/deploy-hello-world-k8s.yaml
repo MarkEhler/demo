@@ -1,0 +1,40 @@
+name: Deploy Hello World Pod to AKS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  hello-world-k8s:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Ensure kubectl is available
+        run: |
+          command -v kubectl || az aks install-cli
+
+      - name: Load Terraform outputs
+        run: |
+          cd Demo/application/terraform
+          terraform init -input=false
+          terraform output -json > /tmp/tf-output.json
+          echo "KUBE_CONFIG_BASE64=$(jq -r '.kubeconfig_base64.value')" >> $GITHUB_ENV
+
+      - name: Configure kubeconfig
+        run: |
+          echo "$KUBE_CONFIG_BASE64" | base64 --decode > /tmp/aks-kubeconfig
+          mkdir -p ~/.kube
+          mv /tmp/aks-kubeconfig ~/.kube/config
+          chmod 600 ~/.kube/config
+          kubectl config view
+
+      - name: Deploy hello world pod
+        run: |
+          kubectl apply -f .github/workflows/agent_deployment/hello-world-pod.yaml
+          kubectl wait --for=condition=Ready pod/hello-world --timeout=120s
+          kubectl get pod hello-world -o wide

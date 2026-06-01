@@ -1,0 +1,23 @@
+datadog:
+  site: datadoghq.com
+  apiKey: ""
+  logs:
+    enabled: true
+  processAgent:
+    enabled: true
+  clusterAgent:
+    enabled: true
+  clusterChecks:
+    enabled: true
+  kubeStateMetricsCore:
+    enabled: true
+  apm:
+    enabled: false
+
+agents:
+  containerCollectAll:
+    enabled: false
+
+clusterAgent:
+  metricsProvider:
+    enabled: true
