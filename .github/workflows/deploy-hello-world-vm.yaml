@@ -42,7 +42,7 @@ jobs:
           echo "[HELLO_WORLD_DEPLOYMENT_START] Target: VM, ID: $VM_ID, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           
           # Read the script content and execute it on the VM
-          SCRIPT_CONTENT=$(cat Demo/application/deploy/hello-world-vm.sh)
+          SCRIPT_CONTENT=$(cat application/deploy/hello-world-vm.sh)
           az vm run-command invoke --ids "$VM_ID" --command-id RunShellScript --scripts "$SCRIPT_CONTENT"
           
           echo "[HELLO_WORLD_DEPLOYMENT_COMPLETE] Hello world script executed on VM: $VM_ID"
