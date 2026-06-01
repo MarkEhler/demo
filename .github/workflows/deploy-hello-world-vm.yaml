@@ -1,0 +1,43 @@
+name: Deploy Hello World Script to VM
+
+on:
+  workflow_dispatch:
+    # inputs:
+    #   vm_id:
+    #     description: 'Azure VM ID (optional; uses Terraform output if empty)'
+    #     required: false
+
+jobs:
+  hello-world-vm-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate GitHub Application token
+        id: app-token
+        uses: peter-murray/workflow-application-token-action@v4
+        with:
+          application_id: ${{ secrets.DEPLOYER_APP_ID }}
+          application_private_key: ${{ secrets.DEPLOYER_APP_PRIVATE_KEY }}
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get VM ID from resource group
+        run: |
+          VM_ID=$(az vm show --resource-group "MarkEhler-demo-rg" --name "MarkEhler-demo-vm" --query id -o tsv)
+          echo "VM_ID=$VM_ID" >> $GITHUB_ENV
+
+      - name: Deploy hello world script to VM
+        run: |
+          echo "[HELLO_WORLD_DEPLOYMENT_START] Target: VM, ID: $VM_ID, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          
+          # Read the script content and execute it on the VM
+          SCRIPT_CONTENT=$(cat Demo/application/deploy/hello-world-vm.sh)
+          az vm run-command invoke --ids "$VM_ID" --command-id RunShellScript --scripts "$SCRIPT_CONTENT"
+          
+          echo "[HELLO_WORLD_DEPLOYMENT_COMPLETE] Hello world script executed on VM: $VM_ID"
