@@ -7,6 +7,10 @@ on:
         description: 'AKS Cluster Name'
         required: true
 
+permissions:
+  id-token: write
+  contents: read
+  
 jobs:
   datadog-k8s-deploy:
     runs-on: ubuntu-latest
