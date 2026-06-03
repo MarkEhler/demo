@@ -5,12 +5,12 @@ on:
     inputs:
       aks_cluster:
         description: 'AKS Cluster Name'
-        required: true
+        required: false
 
 permissions:
   id-token: write
   contents: read
-  
+
 jobs:
   datadog-k8s-deploy:
     runs-on: ubuntu-latest
@@ -37,28 +37,25 @@ jobs:
           command -v helm || curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           command -v kubectl || az aks install-cli
 
-      - name: Configure kubeconfig
+      - name: Configure kubeconfig from AKS
         run: |
-          echo "$KUBE_CONFIG_BASE64" | base64 --decode > /tmp/aks-kubeconfig
-          mkdir -p ~/.kube
-          mv /tmp/aks-kubeconfig ~/.kube/config
-          chmod 600 ~/.kube/config
-          kubectl config view
+          CLUSTER_NAME="${{ github.event.inputs.aks_cluster || 'MarkEhler-demo-aks' }}"
+          az aks get-credentials \
+            --resource-group "MarkEhler-demo-rg" \
+            --name "$CLUSTER_NAME" \
+            --overwrite-existing
+          kubectl get nodes
 
       - name: Deploy Datadog Helm Chart
         run: |
-          CLUSTER_NAME="${{ github.event.inputs.aks_cluster }}"
-          if [ -z "$CLUSTER_NAME" ]; then
-            CLUSTER_NAME="$TF_AKS_CLUSTER_NAME"
-          fi
+          CLUSTER_NAME="${{ github.event.inputs.aks_cluster || 'MarkEhler-demo-aks' }}"
           echo "[DATADOG_DEPLOYMENT_START] Target: K8S, Cluster: $CLUSTER_NAME, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           helm repo add datadog https://helm.datadoghq.com
           helm repo update
-          helm upgrade --install datadog datadog/datadog -f application/deploy/datadog-values.yaml \
+          helm upgrade --install datadog datadog/datadog \
+            -f application/deploy/datadog-values.yaml \
             --set datadog.apiKey="${DATADOG_API_KEY}" \
             --set datadog.site="datadoghq.com"
           echo "[DATADOG_DEPLOYMENT_COMPLETE] Datadog deployed to cluster: $CLUSTER_NAME"
         env:
           DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
-
-          
