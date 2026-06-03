@@ -7,6 +7,10 @@ on:
         description: 'Azure VM ID'
         required: true
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   datadog-vm-deploy:
     runs-on: ubuntu-latest
@@ -26,7 +30,7 @@ jobs:
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" \
             | jq -r '.value')
           echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq '{sub, iss, aud}'
-          
+
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -36,14 +40,13 @@ jobs:
 
       - name: Deploy Datadog Agent to VM
         run: |
-          if [ -z "${{ github.event.inputs.vm_id }}" ]; then
-            VM_ID="$TF_VM_ID"
-          else
-            VM_ID="${{ github.event.inputs.vm_id }}"
-          fi
+          VM_ID="${{ github.event.inputs.vm_id }}"
           echo "[DATADOG_DEPLOYMENT_START] Target: VM, ID: $VM_ID, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          az vm run-command invoke --ids "$VM_ID" --command-id RunShellScript --scripts "DD_API_KEY='${DD_API_KEY}' DD_SITE='${DD_SITE}' DD_AGENT_MAJOR_VERSION=7 bash -c \"\$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)\""
+          az vm run-command invoke \
+            --ids "$VM_ID" \
+            --command-id RunShellScript \
+            --scripts "DD_API_KEY='${DD_API_KEY}' DD_SITE='${DD_SITE}' DD_AGENT_MAJOR_VERSION=7 bash -c \"\$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)\""
           echo "[DATADOG_DEPLOYMENT_COMPLETE] Agent installed on VM: $VM_ID"
         env:
           DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
-          DD_SITE:    ${{ secrets.DATADOG_SITE }}
+          DD_SITE: ${{ secrets.DATADOG_SITE }}
