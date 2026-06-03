@@ -58,13 +58,6 @@ variable "admin_username" {
   default     = "azureuser"
 }
 
-variable "ssh_public_key" {
-  type        = string
-  description = "SSH public key for VM authentication"
-  sensitive   = true
-  default     = "null"
-}
-
 variable "allowed_ssh_cidr" {
   type        = string
   description = "CIDR block allowed for SSH access"

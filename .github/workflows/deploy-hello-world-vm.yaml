@@ -43,6 +43,6 @@ jobs:
           
           # Read the script content and execute it on the VM
           SCRIPT_CONTENT=$(cat application/deploy/hello-world-vm.sh)
-          az vm run-command invoke --ids "$VM_ID" --command-id RunShellScript --scripts "$SCRIPT_CONTENT"
+          az vm run-command invoke --ids "$VM_ID" --command-id RunShellScript --scripts "application/deploy/dd-agent-install.sh"
           
           echo "[HELLO_WORLD_DEPLOYMENT_COMPLETE] Hello world script executed on VM: $VM_ID"
