@@ -1,6 +1,6 @@
 # Demo
 
-A small repository containing infrastructure setup and CI/CD workflows.
+A small repository containing infrastructure setup and CI/CD workflows. Assumes a valid azure subscription and
 
 ## Repository structure
 

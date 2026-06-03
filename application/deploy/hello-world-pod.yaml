@@ -4,6 +4,8 @@ metadata:
   name: hello-world
   labels:
     app: hello-world
+  annotations:
+    ad.datadoghq.com/hello-world.logs: '[{"source":"k8s-busybox","service":"hello-world"}]'
 spec:
   restartPolicy: OnFailure
   containers:
@@ -13,5 +15,9 @@ spec:
         - sh
         - -c
         - |
-          echo "Hello World from AKS"
-          sleep 3600
+          i=0
+          while true; do
+            i=$((i + 1))
+            echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"level\":\"info\",\"message\":\"Hello World from AKS\",\"iteration\":$i,\"host\":\"$(hostname)\"}"
+            sleep 100
+          done

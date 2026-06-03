@@ -5,7 +5,7 @@ on:
     inputs:
       vm_id:
         description: 'Azure VM ID (optional; uses Terraform output if empty)'
-        required: false
+        required: true
 
 jobs:
   datadog-vm-deploy:
@@ -27,15 +27,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Load Terraform outputs
-        run: |
-          cd Demo/application/terraform
-          terraform init -input=false
-          terraform output -json > /tmp/tf-outputs.json
-          echo "TF_VM_ID=$(jq -r '.vm_id.value')" >> $GITHUB_ENV
-          echo "TF_VM_NAME=$(jq -r '.vm_name.value')" >> $GITHUB_ENV
-          echo "TF_VM_PUBLIC_IP=$(jq -r '.vm_public_ip.value')" >> $GITHUB_ENV
-
       - name: Deploy Datadog Agent to VM
         run: |
           if [ -z "${{ github.event.inputs.vm_id }}" ]; then
@@ -44,8 +35,9 @@ jobs:
             VM_ID="${{ github.event.inputs.vm_id }}"
           fi
           echo "[DATADOG_DEPLOYMENT_START] Target: VM, ID: $VM_ID, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          az vm run-command invoke --ids "$VM_ID" --command-id RunShellScript --scripts "curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh -o /tmp/datadog-install.sh && chmod +x /tmp/datadog-install.sh && sudo DD_API_KEY='${DATADOG_API_KEY}' DD_AGENT_MAJOR_VERSION=7 bash /tmp/datadog-install.sh"
+          # az vm run-command invoke --ids "$VM_ID" --command-id RunShellScript --scripts "curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh -o /tmp/datadog-install.sh && chmod +x /tmp/datadog-install.sh && sudo DD_API_KEY='${DATADOG_API_KEY}' DD_AGENT_MAJOR_VERSION=7 bash /tmp/datadog-install.sh"
+          # bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"
           echo "[DATADOG_DEPLOYMENT_COMPLETE] Agent installed on VM: $VM_ID"
         env:
-          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
-          
+          DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DD_SITE:    ${{ secrets.DATADOG_SITE }}

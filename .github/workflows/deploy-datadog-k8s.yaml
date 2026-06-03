@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       aks_cluster:
-        description: 'AKS Cluster Name (optional; uses Terraform output if empty)'
-        required: false
+        description: 'AKS Cluster Name'
+        required: true
 
 jobs:
   datadog-k8s-deploy:
@@ -33,14 +33,6 @@ jobs:
           command -v helm || curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           command -v kubectl || az aks install-cli
 
-      - name: Load Terraform outputs
-        run: |
-          cd Demo/application/terraform
-          terraform init -input=false
-          terraform output -json > /tmp/tf-outputs.json
-          echo "KUBE_CONFIG_BASE64=$(jq -r '.kubeconfig_base64.value')" >> $GITHUB_ENV
-          echo "TF_AKS_CLUSTER_NAME=$(jq -r '.aks_cluster_name.value')" >> $GITHUB_ENV
-
       - name: Configure kubeconfig
         run: |
           echo "$KUBE_CONFIG_BASE64" | base64 --decode > /tmp/aks-kubeconfig
@@ -58,7 +50,7 @@ jobs:
           echo "[DATADOG_DEPLOYMENT_START] Target: K8S, Cluster: $CLUSTER_NAME, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           helm repo add datadog https://helm.datadoghq.com
           helm repo update
-          helm upgrade --install datadog datadog/datadog -f .github/workflows/agent_deployment/values.yaml \
+          helm upgrade --install datadog datadog/datadog -f application/deploy/datadog-values.yaml \
             --set datadog.apiKey="${DATADOG_API_KEY}" \
             --set datadog.site="datadoghq.com"
           echo "[DATADOG_DEPLOYMENT_COMPLETE] Datadog deployed to cluster: $CLUSTER_NAME"
