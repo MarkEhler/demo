@@ -10,7 +10,6 @@ permissions:
 jobs:
   hello-world-vm-deploy:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - uses: actions/checkout@v4
 
