@@ -146,12 +146,6 @@ resource "azurerm_linux_virtual_machine" "MarkEhler_demo_vm" {
   }
 }
 
-  tags = {
-    Environment = "Demo"
-    DeploymentId = "datadog-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
-  }
-}
-
 # AKS Cluster
 resource "azurerm_kubernetes_cluster" "MarkEhler_demo_aks" {
   name                = "${var.project_prefix}-aks"
