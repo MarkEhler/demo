@@ -70,6 +70,18 @@ resource "azurerm_network_security_group" "vm_nsg" {
     destination_address_prefix = "*"
   }
 
+  security_rule {
+    name                       = "Allow-Bastion-Inbound"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_ranges    = ["22", "3389"]
+    source_address_prefix      = "AzureBastionSubnet"
+    destination_address_prefix = "*"
+  }
+
   tags = {
     Environment = "Demo"
   }
@@ -110,12 +122,29 @@ resource "azurerm_linux_virtual_machine" "MarkEhler_demo_vm" {
   resource_group_name = azurerm_resource_group.MarkEhler_demo.name
   size                = var.vm_size
 
-  admin_username = var.admin_username
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
 
-  admin_ssh_key {
-    username   = var.admin_username
-    public_key = var.ssh_public_key
+  network_interface_ids = [azurerm_network_interface.vm_nic.id]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Premium_LRS"
   }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts-gen2"
+    version   = "latest"
+  }
+
+  tags = {
+    Environment  = "Demo"
+    DeploymentId = "datadog-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  }
+}
 
   network_interface_ids = [azurerm_network_interface.vm_nic.id]
 
