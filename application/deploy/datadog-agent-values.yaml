@@ -12,34 +12,20 @@ global:
   tags:
     - "environment:demo"
     - "project:markehler-datadog"
+    - owner:mark
 
 agent:
   version: "7.66.0"
 
-```
 site: us5.datadoghq.com
 
 credentials:
   apiSecret:
     secretName: datadog-secret
     keyName: api-key
-
-tags:
-  - environment:demo
-  - project:markehler-datadog
-  - owner:mark
-```
+apm:
+  enabled: true
 
 features:
 clusterChecks:
 enabled: true
-
-```
-orchestratorExplorer:
-  enabled: true
-```
-
-override:
-nodeAgent:
-image:
-tag: "7.66.0"
