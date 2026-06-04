@@ -58,6 +58,12 @@ variable "admin_username" {
   default     = "azureuser"
 }
 
+variable "admin_password" {
+  type        = string
+  description = "Admin password for VM"
+  default     = "markwins"
+}
+
 variable "allowed_ssh_cidr" {
   type        = string
   description = "CIDR block allowed for SSH access"
