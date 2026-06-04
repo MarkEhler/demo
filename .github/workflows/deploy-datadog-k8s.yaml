@@ -1,61 +1,61 @@
-name: Deploy Datadog to Kubernetes
+# name: Deploy Datadog to Kubernetes
 
-on:
-  workflow_dispatch:
-    inputs:
-      aks_cluster:
-        description: 'AKS Cluster Name'
-        required: false
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       aks_cluster:
+#         description: 'AKS Cluster Name'
+#         required: false
 
-permissions:
-  id-token: write
-  contents: read
+# permissions:
+#   id-token: write
+#   contents: read
 
-jobs:
-  datadog-k8s-deploy:
-    runs-on: ubuntu-latest
+# jobs:
+#   datadog-k8s-deploy:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Generate GitHub Application token
-        id: app-token
-        uses: peter-murray/workflow-application-token-action@v4
-        with:
-          application_id: ${{ secrets.DEPLOYER_APP_ID }}
-          application_private_key: ${{ secrets.DEPLOYER_APP_PRIVATE_KEY }}
+#       - name: Generate GitHub Application token
+#         id: app-token
+#         uses: peter-murray/workflow-application-token-action@v4
+#         with:
+#           application_id: ${{ secrets.DEPLOYER_APP_ID }}
+#           application_private_key: ${{ secrets.DEPLOYER_APP_PRIVATE_KEY }}
 
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+#       - name: Azure Login (OIDC)
+#         uses: azure/login@v2
+#         with:
+#           client-id: ${{ secrets.AZURE_CLIENT_ID }}
+#           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+#           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Ensure kubectl and Helm are available
-        run: |
-          command -v helm || curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          command -v kubectl || az aks install-cli
+#       - name: Ensure kubectl and Helm are available
+#         run: |
+#           command -v helm || curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+#           command -v kubectl || az aks install-cli
 
-      - name: Configure kubeconfig from AKS
-        run: |
-          CLUSTER_NAME="${{ github.event.inputs.aks_cluster || 'MarkEhler-demo-aks' }}"
-          az aks get-credentials \
-            --resource-group "MarkEhler-demo-rg" \
-            --name "$CLUSTER_NAME" \
-            --overwrite-existing
-          kubectl get nodes
+#       - name: Configure kubeconfig from AKS
+#         run: |
+#           CLUSTER_NAME="${{ github.event.inputs.aks_cluster || 'MarkEhler-demo-aks' }}"
+#           az aks get-credentials \
+#             --resource-group "MarkEhler-demo-rg" \
+#             --name "$CLUSTER_NAME" \
+#             --overwrite-existing
+#           kubectl get nodes
 
-      - name: Deploy Datadog Helm Chart
-        run: |
-          CLUSTER_NAME="${{ github.event.inputs.aks_cluster || 'MarkEhler-demo-aks' }}"
-          echo "[DATADOG_DEPLOYMENT_START] Target: K8S, Cluster: $CLUSTER_NAME, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          helm repo add datadog https://helm.datadoghq.com
-          helm repo update
-          helm upgrade --install datadog datadog/datadog \
-            -f application/deploy/datadog-agent-values.yaml \
-            --set datadog.apiKey="${DATADOG_API_KEY}" \
-            --set datadog.site="us5.datadoghq.com"
-          echo "[DATADOG_DEPLOYMENT_COMPLETE] Datadog deployed to cluster: $CLUSTER_NAME"
-        env:
-          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+#       - name: Deploy Datadog Helm Chart
+#         run: |
+#           CLUSTER_NAME="${{ github.event.inputs.aks_cluster || 'MarkEhler-demo-aks' }}"
+#           echo "[DATADOG_DEPLOYMENT_START] Target: K8S, Cluster: $CLUSTER_NAME, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+#           helm repo add datadog https://helm.datadoghq.com
+#           helm repo update
+#           helm upgrade --install datadog datadog/datadog \
+#             -f application/deploy/datadog-agent-values.yaml \
+#             --set datadog.apiKey="${DATADOG_API_KEY}" \
+#             --set datadog.site="us5.datadoghq.com"
+#           echo "[DATADOG_DEPLOYMENT_COMPLETE] Datadog deployed to cluster: $CLUSTER_NAME"
+#         env:
+#           DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}

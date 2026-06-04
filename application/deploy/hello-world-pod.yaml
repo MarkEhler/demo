@@ -4,6 +4,9 @@ metadata:
   name: hello-world
   labels:
     app: hello-world
+    tags.datadoghq.com/env: "demo"
+    tags.datadoghq.com/service: "hello-world"
+    tags.datadoghq.com/version: "1.0.0"
   annotations:
     ad.datadoghq.com/hello-world.logs: '[{"source":"k8s-busybox","service":"hello-world"}]'
 spec:
@@ -19,5 +22,5 @@ spec:
           while true; do
             i=$((i + 1))
             echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"level\":\"info\",\"message\":\"Hello World from AKS\",\"iteration\":$i,\"host\":\"$(hostname)\"}"
-            sleep 100
+            sleep 10
           done

@@ -1,3 +1,2 @@
 .github/workflows/actions/*
-.github/workflows/deploy-datadog*
 application/deploy/values.yaml
