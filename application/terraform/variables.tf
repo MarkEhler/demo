@@ -61,7 +61,7 @@ variable "admin_username" {
 variable "admin_password" {
   type        = string
   description = "Admin password for VM"
-  default     = "markwins"
+  default     = "Markwins1"
 }
 
 variable "allowed_ssh_cidr" {
