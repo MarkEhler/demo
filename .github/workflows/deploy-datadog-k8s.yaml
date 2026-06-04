@@ -54,8 +54,7 @@ jobs:
           helm repo update
           helm upgrade --install datadog datadog/datadog \
             -f application/deploy/datadog-agent-values.yaml \
-            --set datadog.apiKey="${DATADOG_API_KEY}" \
-            --set datadog.site="datadoghq.com"
+            --set datadog.apiKey="${DATADOG_API_KEY}"
           echo "[DATADOG_DEPLOYMENT_COMPLETE] Datadog deployed to cluster: $CLUSTER_NAME"
         env:
           DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}

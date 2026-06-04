@@ -1,19 +1,17 @@
 name: Deploy Infrastructure
 
 on:
-  # push:
-  #   branches: [main]
   workflow_dispatch:
-    # inputs:
-    #   environment:
-    #     type: choice
-    #     required: true
-    #     description: Target environment
-    #     options:
-    #       - dev
-    #       - qa
-    #       - production
-    #       - test
+    inputs:
+      environment-selection:
+        type: choice
+        required: true
+        description: Target environment
+        options:
+          - dev
+          - qa
+          - production
+          - test
 
 permissions:
   id-token: write

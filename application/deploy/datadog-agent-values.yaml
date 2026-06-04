@@ -1,18 +1,45 @@
-kind: "DatadogAgent"
-apiVersion: "datadoghq.com/v2alpha1"
+kind: DatadogAgent
+apiVersion: datadoghq.com/v2alpha1
+
 metadata:
-  name: "datadog"
-  namespace: "datadog"
+name: datadog
+namespace: datadog
+
 spec:
-  global:
-    clusterName: "MarkEhler-demo-aks"
-    site: "us5.datadoghq.com"
-    credentials:
-      apiSecret:
-        secretName: "datadog-secret"
-        keyName: "api-key"
-  features:
-    clusterChecks:
-      enabled: true
-    orchestratorExplorer:
-      enabled: true
+global:
+  clusterName: "MarkEhler-demo-aks"
+
+  tags:
+    - "environment:demo"
+    - "project:markehler-datadog"
+
+agent:
+  version: "7.66.0"
+
+```
+site: us5.datadoghq.com
+
+credentials:
+  apiSecret:
+    secretName: datadog-secret
+    keyName: api-key
+
+tags:
+  - environment:demo
+  - project:markehler-datadog
+  - owner:mark
+```
+
+features:
+clusterChecks:
+enabled: true
+
+```
+orchestratorExplorer:
+  enabled: true
+```
+
+override:
+nodeAgent:
+image:
+tag: "7.66.0"

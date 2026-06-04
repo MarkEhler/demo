@@ -2,10 +2,6 @@ name: Deploy Datadog to VM
 
 on:
   workflow_dispatch:
-    inputs:
-      vm_id:
-        description: 'Azure VM ID'
-        required: true
 
 permissions:
   id-token: write
@@ -40,7 +36,8 @@ jobs:
 
       - name: Deploy Datadog Agent to VM
         run: |
-          VM_ID="${{ github.event.inputs.vm_id }}"
+          VM_ID=$(az vm show --resource-group "MarkEhler-demo-rg" --name "MarkEhler-demo-vm" --query id -o tsv)
+          echo "VM_ID=$VM_ID" >> $GITHUB_ENV
           echo "[DATADOG_DEPLOYMENT_START] Target: VM, ID: $VM_ID, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           az vm run-command invoke \
             --ids "$VM_ID" \

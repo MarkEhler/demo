@@ -2,10 +2,6 @@ name: Deploy Hello World Script to VM
 
 on:
   workflow_dispatch:
-    # inputs:
-    #   vm_id:
-    #     description: 'Azure VM ID (optional; uses Terraform output if empty)'
-    #     required: false
 
 permissions:
   id-token: write
