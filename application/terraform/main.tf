@@ -146,20 +146,6 @@ resource "azurerm_linux_virtual_machine" "MarkEhler_demo_vm" {
   }
 }
 
-  network_interface_ids = [azurerm_network_interface.vm_nic.id]
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Premium_LRS"
-  }
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-focal"
-    sku       = "20_04-lts-gen2"
-    version   = "latest"
-  }
-
   tags = {
     Environment = "Demo"
     DeploymentId = "datadog-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
