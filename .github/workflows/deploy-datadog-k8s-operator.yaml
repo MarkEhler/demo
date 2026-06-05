@@ -56,6 +56,6 @@ jobs:
           kubectl create secret generic datadog-secret -n datadog \
             --from-literal api-key="${DATADOG_API_KEY}" \
             --dry-run=client -o yaml | kubectl apply -f -
-          kubectl apply -f application/deploy/datadog-agent.yaml
+          kubectl apply -f application/deploy/datadog-agent-values.yaml
         env:
           DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
