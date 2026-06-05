@@ -78,3 +78,36 @@ Demo/
 
 ```
 ```
+## Deployment Strategy
+
+## Phase 1 — POC (Week 1–2)
+Deploy agent to dev environment — single cluster, 10 nodes
+Validate: hosts appear, logs flowing, APM traces visible
+Establish tagging strategy and get team sign-off
+Identify any network or proxy blockers early
+Success criteria: 
+Dev environment fully instrumented, unified service tagging validated, no gaps in host map.
+
+## Phase 2 — Test / Staging (Week 3–4)
+Promote same Helm chart and Terraform config to staging with environment-specific values
+Validate against production-like workloads
+Build and validate dashboards, monitors, and SLOs against staging data
+Run a simulated incident — verify the observability stack surfaces it correctly
+Involve on-call team — they need to trust the tooling before prod
+Success criteria: 
+Staging mirrors prod architecture, on-call team has validated alert coverage, runbooks written.
+
+## Phase 3 — Production (Week 5–8)
+Canary rollout — deploy to 10% of prod nodes first
+Watch host map for gaps — any node not reporting is a problem before full rollout
+Validate log volume and cost — set exclusion filters before full indexing
+Full rollout after 48-hour canary validation
+Decommission any existing monitoring tools running in parallel
+Success criteria: 
+100% node coverage in host map, all services appearing in APM, SLOs defined and tracking.
+
+## Phase 4 — Steady State (Week 8+)
+Agent version management via pipeline — no manual updates
+Tagging governance — quarterly audit of tag consistency
+Log cost review — monthly check on indexing vs archive split
+Expand coverage: Synthetics, RUM, Continuous Profiler as next phases

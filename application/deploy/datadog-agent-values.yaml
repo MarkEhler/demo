@@ -15,19 +15,22 @@ spec:
       - "environment:demo"
       - "project:markehler-datadog"
       - "owner:mark"
-  features:
-    apm:
-      instrumentation:
-        enabled: true
-        targets:
-          - name: "default-target"
-            ddTraceVersions:
-              java: "1"
-              python: "4"
-              js: "5"
-              php: "1"
-              dotnet: "3"
-              ruby: "2"
+  # features:
+  #   apm:
+  #     instrumentation:
+  #       enabled: true
+  #       targets:
+  #         - name: "default-target"
+  #           ddTraceVersions:
+  #             java: "1"
+  #             python: "4"
+  #             js: "5"
+  #             php: "1"
+  #             dotnet: "3"
+  #             ruby: "2"
+  #   logs:
+  #     enabled: true
+  #     containerCollectAll: true
     clusterChecks:
       enabled: true
   override:
