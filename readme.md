@@ -1,6 +1,10 @@
 # Demo
+Problem
+"Our services company has multiple services running on Kubernetes and Linux virtual machines across multiple environments — dev, staging, and production. Their on-call team is flying blind during incidents and MTTR is running three to four hours."
+--Overworked Client
 
-"A mid-size financial services company has 200 microservices running on Kubernetes across three environments — dev, staging, and production. They have basic cloud monitoring but no unified observability. Their on-call team is flying blind during incidents and MTTR is running three to four hours. Our job today is to walk through how we would deploy the Datadog agent across that environment, automate it end to end, and build the foundation for full observability."
+POC MVP
+ Our job today is to walk through how we would deploy the Datadog agent across that environment, automate it end to end, and build the foundation for full observability. Datadog agents can quickly provide full coverage with metrics and reduce the MTTR. Disaster response can use Datadog as the single pane of glass for their disaster response from ticketing to 
 
 ## Repository Structure
 
