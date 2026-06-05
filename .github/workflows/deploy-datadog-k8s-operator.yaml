@@ -46,6 +46,7 @@ jobs:
             --overwrite-existing
           kubectl get nodes
 
+      - name: Deploy Datadog Operator and Agent
         run: |
           helm repo add datadog https://helm.datadoghq.com
           helm repo update
