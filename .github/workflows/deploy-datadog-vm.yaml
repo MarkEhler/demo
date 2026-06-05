@@ -46,4 +46,4 @@ jobs:
           echo "[DATADOG_DEPLOYMENT_COMPLETE] Agent installed on VM: $VM_ID"
         env:
           DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
-          DD_SITE: ${{ secrets.DATADOG_SITE }}
+          DD_SITE: us5.datadoghq.com
