@@ -5,7 +5,7 @@ metadata:
   namespace: datadog
 spec:
   global:
-    clusterName: "markmhler-demo-aks"
+    clusterName: "markehler-demo-aks"
     site: us5.datadoghq.com
     credentials:
       apiSecret:
@@ -16,25 +16,22 @@ spec:
       - "project:markehler-datadog"
       - "owner:mark"
   features:
-features:
-  apm:
-    instrumentation:
-      enabled: true
-      targets:
-        - name: "default-target"
-          ddTraceVersions:
-            java: "1"
-            python: "4"
-            js: "5"
-            php: "1"
-            dotnet: "3"
-            ruby: "2"
+    apm:
+      instrumentation:
+        enabled: true
+        targets:
+          - name: "default-target"
+            ddTraceVersions:
+              java: "1"
+              python: "4"
+              js: "5"
+              php: "1"
+              dotnet: "3"
+              ruby: "2"
     clusterChecks:
       enabled: true
   override:
     nodeAgent:
-      image:
-        # tag: "7.66.0" 
       env:
         - name: DD_HOSTNAME
           valueFrom:
