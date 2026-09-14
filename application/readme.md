@@ -71,6 +71,11 @@ Recommended path:
 - backend configuration per environment
 - CI/CD pipeline applies changes against the remote state instead of local state files
 
+### 2. Token OIDC authentication
+
+Current Issue:
+- Runner is provided a key pair with the target resources it's required to deploy to. 
+
 ## Prerequisites
 
 - AWS account with appropriate IAM permissions
