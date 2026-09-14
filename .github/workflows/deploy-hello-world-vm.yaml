@@ -6,7 +6,7 @@ on:
       instance_id:
         description: EC2 instance ID to target
         required: true
-        default: i-0123456789abcdef0
+        default: "instance id goes here"
         type: string
 
 permissions:

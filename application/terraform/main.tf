@@ -126,6 +126,31 @@ resource "aws_key_pair" "demo" {
   public_key = trimspace(var.ssh_public_key)
 }
 
+resource "aws_iam_role" "ssm_instance" {
+  name = "${var.project_name}-ssm-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_core" {
+  role       = aws_iam_role.ssm_instance.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ssm_instance" {
+  name = "${var.project_name}-ssm-instance-profile"
+  role = aws_iam_role.ssm_instance.name
+}
+
 resource "aws_instance" "demo_vm" {
   ami                         = "ami-0c02fb55956c7d316"
   instance_type               = var.ec2_instance_type
@@ -133,16 +158,64 @@ resource "aws_instance" "demo_vm" {
   vpc_security_group_ids      = [aws_security_group.demo_vm.id]
   associate_public_ip_address = true
   key_name                    = length(aws_key_pair.demo) > 0 ? aws_key_pair.demo[0].key_name : null
+  iam_instance_profile       = aws_iam_instance_profile.ssm_instance.name
 
   user_data = <<-EOT
     #!/bin/bash
+    set -euxo pipefail
     apt-get update
     apt-get install -y ca-certificates curl jq
+
+    curl -o /tmp/amazon-ssm-agent.deb https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
+    dpkg -i /tmp/amazon-ssm-agent.deb || apt-get install -fy
+    systemctl enable amazon-ssm-agent
+    systemctl restart amazon-ssm-agent
+    systemctl status amazon-ssm-agent --no-pager || true
   EOT
 
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-vm"
   })
+}
+
+resource "aws_iam_role" "github_actions_eks_admin" {
+  name = "${var.project_name}-github-eks-admin"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        AWS = "arn:aws:iam::${var.aws_account_id}:user/github"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_eks_admin" {
+  role       = aws_iam_role.github_actions_eks_admin.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+resource "aws_eks_access_entry" "github_actions_admin" {
+  cluster_name  = aws_eks_cluster.demo.name
+  principal_arn = aws_iam_role.github_actions_eks_admin.arn
+  type          = "STANDARD"
+
+  depends_on = [aws_eks_cluster.demo]
+}
+
+resource "aws_eks_access_policy_association" "github_actions_admin" {
+  cluster_name  = aws_eks_cluster.demo.name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = aws_iam_role.github_actions_eks_admin.arn
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.github_actions_admin]
 }
 
 resource "aws_iam_role" "eks_cluster" {

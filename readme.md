@@ -72,14 +72,6 @@ Demo/
 * Validation workflows
 * Infrastructure lifecycle workflows
 
-## Notes
-
-* All Azure authentication uses GitHub OIDC.
-* Terraform state should be stored remotely for production use.
-* Datadog configuration should be modified in a single location and consumed by both VM and Kubernetes deployments.
-* Deployment scripts live in `application/deploy/`.
-* Configuration files live in `application/config/`.
-
 ```
 ```
 ## Deployment Strategy
