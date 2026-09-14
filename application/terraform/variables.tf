@@ -40,12 +40,6 @@ variable "aws_secret_access_key" {
   default     = ""
 }
 
-variable "aws_session_token" {
-  type        = string
-  description = "Optional AWS session token for temporary credentials. Leave blank if not required."
-  default     = ""
-}
-
 variable "vpc_cidr" {
   type        = string
   description = "CIDR block for the VPC."
@@ -74,24 +68,6 @@ variable "eks_node_count" {
   type        = number
   description = "Desired number of EKS worker nodes."
   default     = 2
-}
-
-variable "admin_username" {
-  type        = string
-  description = "Admin username for the Linux EC2 instance."
-  default     = "ec2-user"
-}
-
-variable "admin_password" {
-  type        = string
-  description = "Password for the VM image if using password authentication. Prefer SSH keys for production."
-  default     = "ChangeMe123!"
-  sensitive   = true
-
-  validation {
-    condition     = length(var.admin_password) >= 12
-    error_message = "admin_password must be at least 12 characters long."
-  }
 }
 
 variable "allowed_ssh_cidr" {
