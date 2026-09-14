@@ -28,15 +28,9 @@ variable "aws_iam_user_arn" {
   default     = ""
 }
 
-variable "aws_access_key_id" {
+variable "aws_session_token" {
   type        = string
-  description = "AWS access key used for Terraform authentication. For production, prefer OIDC or IAM role assumptions."
-  default     = ""
-}
-
-variable "aws_secret_access_key" {
-  type        = string
-  description = "AWS secret access key used for Terraform authentication."
+  description = "Optional AWS session token for temporary credentials. Leave blank if not required."
   default     = ""
 }
 
