@@ -1,24 +1,34 @@
 #!/bin/bash
 set -euo pipefail
 
-DD_API_KEY="$1"
-DD_SITE="$2"
-DD_TAGS="$3" 
+if [ "$#" -ne 3 ]; then
+  echo "Usage: $0 <datadog_api_key> <datadog_site> <space-delimited-tags>" >&2
+  exit 1
+fi
+
+DD_API_KEY="${1}"
+DD_SITE="${2}"
+DD_TAGS="${3}"
+
+if [ -z "$DD_API_KEY" ] || [ -z "$DD_SITE" ] || [ -z "$DD_TAGS" ]; then
+  echo "Missing required Datadog installation values." >&2
+  exit 1
+fi
 
 echo "[DATADOG] Starting installation"
 
-# Install only if not already present (config is managed below, not by the installer)
+# Install only if not already present.
 if ! command -v datadog-agent >/dev/null 2>&1; then
   DD_API_KEY="$DD_API_KEY" DD_SITE="$DD_SITE" DD_AGENT_MAJOR_VERSION=7 \
     bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"
 fi
 
-# Declarative "values" config — always rewritten so site/tags/key can't drift
+# Declarative config — avoid drift between releases and environments.
 cat > /etc/datadog-agent/datadog.yaml <<EOF
 api_key: ${DD_API_KEY}
 site: ${DD_SITE}
 tags:
-$(for t in ${DD_TAGS}; do echo "  - ${t}"; done)
+$(for tag in ${DD_TAGS}; do echo "  - ${tag}"; done)
 apm_config:
   enabled: true
 logs_enabled: true

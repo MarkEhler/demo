@@ -3,7 +3,7 @@ set -euo pipefail
 
 echo "Hello world from the Azure VM!"
 cat <<'EOF' >/tmp/hello-world.txt
-Hello World from the Azure VM!
+Hello World from the VM!
 EOF
 chmod 644 /tmp/hello-world.txt
 

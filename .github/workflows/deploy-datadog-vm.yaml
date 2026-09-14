@@ -1,49 +1,77 @@
-name: Deploy Datadog to VM
+name: Deploy Datadog to EC2 VM
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment name
+        required: true
+        default: development
+        type: string
+      instance_id:
+        description: EC2 instance ID to install Datadog on
+        required: true
+        default: i-0123456789abcdef0
+        type: string
+      datadog_site:
+        description: Datadog site to use
+        required: true
+        default: us5.datadoghq.com
+        type: string
+      project_name:
+        description: Project tag value to apply to the agent
+        required: true
+        default: dti-demo
+        type: string
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  datadog-vm-deploy:
+  datadog-ec2-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate GitHub Application token
-        id: app-token
-        uses: peter-murray/workflow-application-token-action@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          application_id: ${{ secrets.DEPLOYER_APP_ID }}
-          application_private_key: ${{ secrets.DEPLOYER_APP_PRIVATE_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
-      - name: Debug OIDC subject
+      - name: Validate AWS and Datadog secrets
+        shell: bash
         run: |
-          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" \
-            | jq -r '.value')
-          echo $TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq '{sub, iss, aud}'
+          set -euo pipefail
+          for secret in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION DATADOG_API_KEY; do
+            if [ -z "${!secret:-}" ]; then
+              echo "Missing required secret: $secret" >&2
+              exit 1
+            fi
+          done
+          aws sts get-caller-identity --output table
 
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy Datadog Agent to VM
+      - name: Deploy Datadog Agent to EC2
+        shell: bash
         run: |
-          VM_ID=$(az vm show --resource-group "MarkEhler-demo-rg" --name "MarkEhler-demo-vm" --query id -o tsv)
-          echo "VM_ID=$VM_ID" >> $GITHUB_ENV
-          echo "[DATADOG_DEPLOYMENT_START] Target: VM, ID: $VM_ID, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          az vm run-command invoke \
-            --ids "$VM_ID" \
-            --command-id RunShellScript \
-            --scripts "DD_API_KEY='${DD_API_KEY}' DD_SITE='${DD_SITE}' DD_AGENT_MAJOR_VERSION=7 bash -c \"\$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)\""
-          echo "[DATADOG_DEPLOYMENT_COMPLETE] Agent installed on VM: $VM_ID"
+          set -euo pipefail
+
+          INSTANCE_ID="${{ inputs.instance_id }}"
+          DD_TAGS="environment:${{ inputs.environment }} project:${{ inputs.project_name }} owner:platform-team"
+
+          echo "[DATADOG_DEPLOYMENT_START] Target: EC2, ID: $INSTANCE_ID, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceIds,Values=$INSTANCE_ID" \
+            --parameters "commands=[\"bash -s -- '${{ secrets.DATADOG_API_KEY }}' '${{ inputs.datadog_site }}' '$DD_TAGS' < /tmp/install-datadog-vm.sh\",\"cat /tmp/install-datadog-vm.sh > /tmp/install-datadog-vm.sh\"]" \
+            --comment "Install Datadog Agent on EC2"
+
+          echo "[DATADOG_DEPLOYMENT_COMPLETE] Agent install command queued for EC2: $INSTANCE_ID"
         env:
           DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
-          DD_SITE: us5.datadoghq.com
+          DD_SITE: ${{ inputs.datadog_site }}
+          DD_TAGS: "environment:${{ inputs.environment }} project:${{ inputs.project_name }} owner:platform-team"

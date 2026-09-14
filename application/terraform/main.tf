@@ -1,222 +1,246 @@
 terraform {
+  required_version = ">= 1.6.0"
+
   required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
     }
   }
 }
 
-provider "azurerm" {
-  features {}
-  use_oidc = true
-}
+provider "aws" {
+  region     = var.aws_region
+  access_key = var.aws_access_key_id
+  secret_key = var.aws_secret_access_key
+  token      = var.aws_session_token != "" ? var.aws_session_token : null
 
-# Resource Group
-resource "azurerm_resource_group" "MarkEhler_demo" {
-  name     = var.resource_group_name
-  location = var.azure_region
-  
-  tags = {
-    Environment = "Demo"
-    Project     = "MarkEhler-Datadog"
-    ManagedBy   = "Terraform"
+  default_tags {
+    tags = {
+      Account = var.aws_account_id
+      Principal = var.aws_iam_user_arn
+      Environment = var.environment
+      Project = var.project_name
+    }
   }
 }
 
-# Virtual Network
-resource "azurerm_virtual_network" "MarkEhler_demo" {
-  name                = "${var.project_prefix}-vnet"
-  address_space       = [var.vnet_cidr]
-  location            = azurerm_resource_group.MarkEhler_demo.location
-  resource_group_name = azurerm_resource_group.MarkEhler_demo.name
-}
-
-# Shared Subnet for VM and AKS
-resource "azurerm_subnet" "shared_subnet" {
-  name                 = "${var.project_prefix}-subnet"
-  resource_group_name  = azurerm_resource_group.MarkEhler_demo.name
-  virtual_network_name = azurerm_virtual_network.MarkEhler_demo.name
-  address_prefixes     = [var.subnet_cidr]
-}
-
-# Network Security Group for VM
-resource "azurerm_network_security_group" "vm_nsg" {
-  name                = "${var.project_prefix}-vm-nsg"
-  location            = azurerm_resource_group.MarkEhler_demo.location
-  resource_group_name = azurerm_resource_group.MarkEhler_demo.name
-
-  security_rule {
-    name                       = "Allow-SSH"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = var.allowed_ssh_cidr
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "Allow-SSH-out"
-    priority                   = 101
-    direction                  = "Outbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = var.allowed_ssh_cidr
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "Allow-All-Outbound"
-    priority                   = 200
-    direction                  = "Outbound"
-    access                     = "Allow"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "*"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  tags = {
-    Environment = "Demo"
+locals {
+  common_tags = {
+    Environment = var.environment
+    Project     = var.project_name
+    ManagedBy   = "terraform"
   }
 }
 
-# Network Interface for VM
-resource "azurerm_network_interface" "vm_nic" {
-  name                = "${var.project_prefix}-vm-nic"
-  location            = azurerm_resource_group.MarkEhler_demo.location
-  resource_group_name = azurerm_resource_group.MarkEhler_demo.name
+resource "aws_vpc" "main" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_support   = true
+  enable_dns_hostnames = true
 
-  ip_configuration {
-    name                          = "primary"
-    subnet_id                     = azurerm_subnet.shared_subnet.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.vm_pip.id
-  }
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-vpc"
+  })
 }
 
-resource "azurerm_network_interface_security_group_association" "vm_nic_nsg" {
-  network_interface_id      = azurerm_network_interface.vm_nic.id
-  network_security_group_id = azurerm_network_security_group.vm_nsg.id
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.subnet_cidr
+  availability_zone       = "${var.aws_region}a"
+  map_public_ip_on_launch = true
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-public-subnet-a"
+  })
 }
 
-# Public IP for VM
-resource "azurerm_public_ip" "vm_pip" {
-  name                = "${var.project_prefix}-vm-pip"
-  location            = azurerm_resource_group.MarkEhler_demo.location
-  resource_group_name = azurerm_resource_group.MarkEhler_demo.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
+resource "aws_subnet" "public_2" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.subnet_cidr_2
+  availability_zone       = "${var.aws_region}b"
+  map_public_ip_on_launch = true
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-public-subnet-b"
+  })
 }
 
-# Linux Virtual Machine
-resource "azurerm_linux_virtual_machine" "MarkEhler_demo_vm" {
-  name                = "${var.project_prefix}-vm"
-  location            = azurerm_resource_group.MarkEhler_demo.location
-  resource_group_name = azurerm_resource_group.MarkEhler_demo.name
-  size                = var.vm_size
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
 
-  admin_username                  = var.admin_username
-  admin_password                  = var.admin_password
-  disable_password_authentication = false
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-igw"
+  })
+}
 
-  network_interface_ids = [azurerm_network_interface.vm_nic.id]
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Premium_LRS"
-  }
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-focal"
-    sku       = "20_04-lts-gen2"
-    version   = "latest"
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
   }
 
-  tags = {
-    Environment  = "Demo"
-    DeploymentId = "datadog-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
-  }
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-public-rt"
+  })
 }
 
-# AKS Cluster
-resource "azurerm_kubernetes_cluster" "MarkEhler_demo_aks" {
-  name                = "${var.project_prefix}-aks"
-  location            = azurerm_resource_group.MarkEhler_demo.location
-  resource_group_name = azurerm_resource_group.MarkEhler_demo.name
-  dns_prefix          = var.project_prefix
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
 
-  default_node_pool {
-    name           = "default"
-    node_count     = var.aks_node_count
-    vm_size        = var.vm_size
-    vnet_subnet_id = azurerm_subnet.shared_subnet.id
-  }
+resource "aws_route_table_association" "public_2" {
+  subnet_id      = aws_subnet.public_2.id
+  route_table_id = aws_route_table.public.id
+}
 
-  identity {
-    type = "SystemAssigned"
-  }
+resource "aws_security_group" "demo_vm" {
+  name        = "${var.project_name}-vm-sg"
+  description = "Allow SSH and outbound internet access to the demo VM."
+  vpc_id      = aws_vpc.main.id
 
-  network_profile {
-    network_plugin    = "azure"
-    service_cidr      = var.aks_service_cidr
-    dns_service_ip    = var.aks_dns_service_ip
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_ssh_cidr]
   }
 
-  tags = {
-    Environment = "Demo"
-    DeploymentId = "datadog-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = local.common_tags
 }
 
-# Store identifiers in Key Vault
-resource "azurerm_key_vault" "MarkEhler_demo" {
-  name                = "${var.project_prefix}kv${random_string.kv_suffix.result}"
-  location            = azurerm_resource_group.MarkEhler_demo.location
-  resource_group_name = azurerm_resource_group.MarkEhler_demo.name
-  tenant_id           = data.azurerm_client_config.current.tenant_id
-  sku_name            = "standard"
+resource "aws_key_pair" "demo" {
+  count = trimspace(var.ssh_public_key) != "" ? 1 : 0
 
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
+  key_name   = "${var.project_name}-key"
+  public_key = trimspace(var.ssh_public_key)
+}
 
-    key_permissions = ["Get", "List"]
-    secret_permissions = ["Get", "List", "Set"]
+resource "aws_instance" "demo_vm" {
+  ami                         = "ami-0c02fb55956c7d316"
+  instance_type               = var.ec2_instance_type
+  subnet_id                   = aws_subnet.public.id
+  vpc_security_group_ids      = [aws_security_group.demo_vm.id]
+  associate_public_ip_address = true
+  key_name                    = length(aws_key_pair.demo) > 0 ? aws_key_pair.demo[0].key_name : null
+
+  user_data = <<-EOT
+    #!/bin/bash
+    apt-get update
+    apt-get install -y ca-certificates curl jq
+  EOT
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-vm"
+  })
+}
+
+resource "aws_iam_role" "eks_cluster" {
+  name = "${var.project_name}-eks-cluster-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "eks.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
+  role       = aws_iam_role.eks_cluster.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+}
+
+resource "aws_iam_role" "eks_node" {
+  name = "${var.project_name}-eks-node-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_policy" {
+  role       = aws_iam_role.eks_node.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
+  role       = aws_iam_role.eks_node.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_registry_policy" {
+  role       = aws_iam_role.eks_node.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_eks_cluster" "demo" {
+  name     = "${var.project_name}-eks"
+  role_arn = aws_iam_role.eks_cluster.arn
+  version  = "1.31"
+
+  vpc_config {
+    subnet_ids = [aws_subnet.public.id, aws_subnet.public_2.id]
+    endpoint_public_access = true
   }
+
+  tags = local.common_tags
 }
 
-resource "azurerm_key_vault_secret" "vm_id" {
-  name         = "vm-id"
-  value        = azurerm_linux_virtual_machine.MarkEhler_demo_vm.id
-  key_vault_id = azurerm_key_vault.MarkEhler_demo.id
+resource "aws_eks_node_group" "demo" {
+  cluster_name    = aws_eks_cluster.demo.name
+  node_group_name = "${var.project_name}-workers"
+  node_role_arn   = aws_iam_role.eks_node.arn
+  subnet_ids      = [aws_subnet.public.id, aws_subnet.public_2.id]
+
+  scaling_config {
+    desired_size = var.eks_node_count
+    max_size     = var.eks_node_count + 1
+    min_size     = 1
+  }
+
+  instance_types = [var.ec2_instance_type]
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_cluster_policy,
+    aws_iam_role_policy_attachment.eks_node_policy,
+    aws_iam_role_policy_attachment.eks_cni_policy,
+    aws_iam_role_policy_attachment.eks_registry_policy
+  ]
 }
 
-resource "azurerm_key_vault_secret" "aks_cluster_id" {
-  name         = "aks-cluster-id"
-  value        = azurerm_kubernetes_cluster.MarkEhler_demo_aks.id
-  key_vault_id = azurerm_key_vault.MarkEhler_demo.id
+resource "aws_secretsmanager_secret" "demo" {
+  name = "${var.project_name}-datadog-config"
+
+  tags = local.common_tags
 }
 
-resource "azurerm_key_vault_secret" "kubeconfig" {
-  name         = "kubeconfig"
-  value        = azurerm_kubernetes_cluster.MarkEhler_demo_aks.kube_admin_config_raw
-  key_vault_id = azurerm_key_vault.MarkEhler_demo.id
+resource "aws_secretsmanager_secret_version" "demo" {
+  secret_id     = aws_secretsmanager_secret.demo.id
+  secret_string = jsonencode({
+    project = var.project_name
+    environment = var.environment
+    datadog_site = "us5.datadoghq.com"
+  })
 }
-
-# Random suffix for Key Vault name uniqueness
-resource "random_string" "kv_suffix" {
-  length  = 4
-  special = false
-  upper   = false
-}
-
-# Data source for current Azure context
-data "azurerm_client_config" "current" {}
