@@ -26,28 +26,24 @@ variable "aws_iam_user_arn" {
   type        = string
   description = "Current IAM user ARN used for local and GitHub-based Terraform access."
   default     = ""
-  sensitive   = true
 }
 
 variable "aws_access_key_id" {
   type        = string
   description = "AWS access key used for Terraform authentication. For production, prefer OIDC or IAM role assumptions."
   default     = ""
-  sensitive   = true
 }
 
 variable "aws_secret_access_key" {
   type        = string
   description = "AWS secret access key used for Terraform authentication."
   default     = ""
-  sensitive   = true
 }
 
 variable "aws_session_token" {
   type        = string
   description = "Optional AWS session token for temporary credentials. Leave blank if not required."
   default     = ""
-  sensitive   = true
 }
 
 variable "vpc_cidr" {
