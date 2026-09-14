@@ -1,4 +1,4 @@
-name: Deploy Hello World Pod to AKS
+name: Deploy Hello World Pod to EKS
 
 on:
   workflow_dispatch:
@@ -13,30 +13,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate GitHub Application token
-        id: app-token
-        uses: peter-murray/workflow-application-token-action@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          application_id: ${{ secrets.DEPLOYER_APP_ID }}
-          application_private_key: ${{ secrets.DEPLOYER_APP_PRIVATE_KEY }}
-
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
       - name: Ensure kubectl is available
         run: |
-          command -v kubectl || az aks install-cli
+          command -v kubectl || curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 
-      - name: Get AKS credentials
+      - name: Get EKS credentials
         run: |
-          az aks get-credentials \
-            --resource-group "MarkEhler-demo-rg" \
-            --name "MarkEhler-demo-aks" \
-            --overwrite-existing
+          aws eks update-kubeconfig --region us-east-1 --name dti-demo-eks
 
       - name: Deploy hello world pod
         run: |

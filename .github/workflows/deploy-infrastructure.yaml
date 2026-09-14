@@ -20,24 +20,23 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Generate GitHub Application token
-        id: app-token
-        uses: peter-murray/workflow-application-token-action@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          application_id: ${{ secrets.DEPLOYER_APP_ID }}
-          application_private_key: ${{ secrets.DEPLOYER_APP_PRIVATE_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Verify AWS access
+        run: aws sts get-caller-identity --output table
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -63,14 +62,7 @@ jobs:
       - name: Terraform Init
         shell: bash
         working-directory: application/terraform
-        env:
-          GIT_ASKPASS: /bin/echo
-          GIT_USERNAME: x-access-token
-          GIT_PASSWORD: ${{ steps.app-token.outputs.token }}
-        run: |
-            git config --global credential.helper store
-            git config --global url."https://x-access-token:${GIT_PASSWORD}@github.com/".insteadOf "https://github.com/"
-            terraform init
+        run: terraform init
 
       - name: Terraform Format Check
         shell: bash

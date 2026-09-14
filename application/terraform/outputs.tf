@@ -1,60 +1,47 @@
-output "resource_group_name" {
-  value       = azurerm_resource_group.MarkEhler_demo.name
-  description = "Name of the resource group"
+output "vpc_id" {
+  value       = aws_vpc.main.id
+  description = "ID of the AWS VPC."
 }
 
-output "vm_id" {
-  value       = azurerm_linux_virtual_machine.MarkEhler_demo_vm.id
-  description = "Resource ID of the VM"
+output "public_subnet_id" {
+  value       = aws_subnet.public.id
+  description = "ID of the public subnet."
 }
 
-output "vm_name" {
-  value       = azurerm_linux_virtual_machine.MarkEhler_demo_vm.name
-  description = "Name of the VM"
+output "ec2_instance_id" {
+  value       = aws_instance.demo_vm.id
+  description = "Instance ID of the Datadog EC2 host."
 }
 
-output "vm_private_ip" {
-  value       = azurerm_network_interface.vm_nic.private_ip_address
-  description = "Private IP address of the VM"
+output "ec2_public_ip" {
+  value       = aws_instance.demo_vm.public_ip
+  description = "Public IP of the Datadog EC2 host."
 }
 
-output "vm_public_ip" {
-  value       = azurerm_public_ip.vm_pip.ip_address
-  description = "Public IP address of the VM"
+output "eks_cluster_name" {
+  value       = aws_eks_cluster.demo.name
+  description = "Name of the Amazon EKS cluster."
 }
 
-output "aks_cluster_id" {
-  value       = azurerm_kubernetes_cluster.MarkEhler_demo_aks.id
-  description = "Resource ID of the AKS cluster"
+output "eks_cluster_endpoint" {
+  value       = aws_eks_cluster.demo.endpoint
+  description = "Endpoint of the EKS control plane."
 }
 
-output "aks_cluster_name" {
-  value       = azurerm_kubernetes_cluster.MarkEhler_demo_aks.name
-  description = "Name of the AKS cluster"
-}
-
-output "aks_api_server" {
-  value       = azurerm_kubernetes_cluster.MarkEhler_demo_aks.fqdn
-  description = "FQDN of the AKS API server"
-}
-
-output "kubeconfig_base64" {
-  value       = base64encode(azurerm_kubernetes_cluster.MarkEhler_demo_aks.kube_admin_config_raw)
-  sensitive   = true
-  description = "Base64 encoded kubeconfig for AKS"
+output "secret_name" {
+  value       = aws_secretsmanager_secret.demo.name
+  description = "Name of the AWS Secrets Manager secret for launch config."
 }
 
 output "infrastructure_identifiers_json" {
   value = jsonencode({
-    vm_id              = azurerm_linux_virtual_machine.MarkEhler_demo_vm.id
-    vm_name            = azurerm_linux_virtual_machine.MarkEhler_demo_vm.name
-    vm_private_ip      = azurerm_network_interface.vm_nic.private_ip_address
-    vm_public_ip       = azurerm_public_ip.vm_pip.ip_address
-    aks_cluster_id     = azurerm_kubernetes_cluster.MarkEhler_demo_aks.id
-    aks_cluster_name   = azurerm_kubernetes_cluster.MarkEhler_demo_aks.name
-    aks_api_server     = azurerm_kubernetes_cluster.MarkEhler_demo_aks.fqdn
-    resource_group     = azurerm_resource_group.MarkEhler_demo.name
-    deployment_id      = "datadog-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+    vpc_id         = aws_vpc.main.id
+    public_subnet  = aws_subnet.public.id
+    ec2_instance_id = aws_instance.demo_vm.id
+    ec2_public_ip  = aws_instance.demo_vm.public_ip
+    eks_cluster_name = aws_eks_cluster.demo.name
+    eks_cluster_endpoint = aws_eks_cluster.demo.endpoint
+    secret_name    = aws_secretsmanager_secret.demo.name
   })
-  description = "Complete identifiers JSON for Datadog deployment workflows"
+  description = "Core AWS deployment identifiers for automation."
 }

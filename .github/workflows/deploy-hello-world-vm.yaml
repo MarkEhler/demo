@@ -1,7 +1,13 @@
-name: Deploy Hello World Script to VM
+name: Deploy Hello World Script to EC2 VM
 
 on:
   workflow_dispatch:
+    inputs:
+      instance_id:
+        description: EC2 instance ID to target
+        required: true
+        default: i-0123456789abcdef0
+        type: string
 
 permissions:
   id-token: write
@@ -13,31 +19,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate GitHub Application token
-        id: app-token
-        uses: peter-murray/workflow-application-token-action@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          application_id: ${{ secrets.DEPLOYER_APP_ID }}
-          application_private_key: ${{ secrets.DEPLOYER_APP_PRIVATE_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Get VM ID from resource group
+      - name: Deploy hello world shell command to EC2
         run: |
-          VM_ID=$(az vm show --resource-group "MarkEhler-demo-rg" --name "MarkEhler-demo-vm" --query id -o tsv)
-          echo "VM_ID=$VM_ID" >> $GITHUB_ENV
+          INSTANCE_ID="${{ inputs.instance_id }}"
+          echo "[HELLO_WORLD_DEPLOYMENT_START] Target: EC2, ID: $INSTANCE_ID, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
-      - name: Deploy hello world script to VM
-        run: |
-          echo "[HELLO_WORLD_DEPLOYMENT_START] Target: VM, ID: $VM_ID, Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceIds,Values=$INSTANCE_ID" \
+            --parameters '{"commands":["echo hello-from-github-actions > /tmp/hello-from-github-actions.txt","cat /tmp/hello-from-github-actions.txt"]}' \
+            --comment "Run hello world script on EC2 via SSM"
 
-          # Read the script content and execute it on the VM
-          SCRIPT_CONTENT=$(cat application/deploy/hello-world-vm.sh)
-          az vm run-command invoke --ids "$VM_ID" --command-id RunShellScript --scripts "$SCRIPT_CONTENT"
-
-          echo "[HELLO_WORLD_DEPLOYMENT_COMPLETE] Hello world script executed on VM: $VM_ID"
+          echo "[HELLO_WORLD_DEPLOYMENT_COMPLETE] Hello world command queued for EC2: $INSTANCE_ID"

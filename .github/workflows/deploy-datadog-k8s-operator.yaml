@@ -3,9 +3,10 @@ name: Deploy Datadog to Kubernetes
 on:
   workflow_dispatch:
     inputs:
-      aks_cluster:
-        description: 'AKS Cluster Name'
+      cluster_name:
+        description: 'EKS Cluster Name'
         required: false
+        default: dti-demo-eks
 
 permissions:
   id-token: write
@@ -18,41 +19,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate GitHub Application token
-        id: app-token
-        uses: peter-murray/workflow-application-token-action@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          application_id: ${{ secrets.DEPLOYER_APP_ID }}
-          application_private_key: ${{ secrets.DEPLOYER_APP_PRIVATE_KEY }}
-
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
       - name: Ensure kubectl and Helm are available
         run: |
           command -v helm || curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-          command -v kubectl || az aks install-cli
+          command -v kubectl || curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 
-      - name: Configure kubeconfig from AKS
+      - name: Configure kubeconfig from EKS
         run: |
-          CLUSTER_NAME="${{ github.event.inputs.aks_cluster || 'MarkEhler-demo-aks' }}"
-          az aks get-credentials \
-            --resource-group "MarkEhler-demo-rg" \
-            --name "$CLUSTER_NAME" \
-            --overwrite-existing
+          CLUSTER_NAME="${{ github.event.inputs.cluster_name || 'dti-demo-eks' }}"
+          aws eks update-kubeconfig --region us-east-1 --name "$CLUSTER_NAME"
           kubectl get nodes
 
       - name: Deploy Datadog Operator and Agent
         run: |
           helm repo add datadog https://helm.datadoghq.com
           helm repo update
-          # install/upgrade ONLY the operator (not the agent chart)
           helm upgrade --install datadog-operator datadog/datadog-operator -n datadog --create-namespace
-          # ensure the API key secret exists (us5 key)
           kubectl create secret generic datadog-secret -n datadog \
             --from-literal api-key="${DATADOG_API_KEY}" \
             --dry-run=client -o yaml | kubectl apply -f -

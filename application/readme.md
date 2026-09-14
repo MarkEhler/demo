@@ -1,75 +1,67 @@
 # Infrastructure Deployment Module
 
 ## Overview
-This module provisions the foundational Azure infrastructure for the Datadog deployment proof of concept. It creates both a Virtual Machine and an Azure Kubernetes Service (AKS) cluster, capturing all identifiers needed for subsequent Datadog agent deployment.
+This module provisions the foundational AWS infrastructure for the Datadog deployment proof of concept. It creates a Linux EC2 instance and an Amazon EKS cluster, capturing the identifiers needed for downstream Datadog agent deployment.
+
+## Environment separation
+The configuration is parameterized for multiple environments and structured for a launch path that is aligned to Amazon infrastructure. The goal is to keep environment-specific values out of the default configuration and instead pass them through workflow inputs or environment variables.
+
+This makes the project easier to reuse for:
+- development and staging
+- production-like validation
+- Amazon launch readiness
 
 ## Resources Generated
 
-### 1. Azure Virtual Machine
-- **Resource Type:** `azurerm_linux_virtual_machine`
-- **SKU:** Standard_B2s (configurable)
-- **Image:** Ubuntu 20.04 LTS
-- **Purpose:** Host for Datadog VM agent deployment
-- **Outputs:**
-  - VM ID
-  - VM Name
-  - Private IP Address
-  - Public IP Address (if applicable)
-  - Resource Group Name
+### 1. EC2 Virtual Machine
+- Resource Type: `aws_instance`
+- Instance Type: configurable
+- Image: Ubuntu-based Amazon AMI
+- Purpose: host for Datadog VM agent deployment
 
-### 2. Azure Kubernetes Service (AKS) Cluster
-- **Resource Type:** `azurerm_kubernetes_cluster`
-- **Node Count:** 2 (configurable)
-- **VM Size:** Standard_B2s per node
-- **Kubernetes Version:** Latest stable
-- **Purpose:** Kubernetes environment for Datadog cluster agent deployment
-- **Outputs:**
-  - Cluster Name
-  - Cluster ID
-  - Kube Config Content (base64 encoded)
-  - Resource Group Name
-  - API Server Address
+### 2. Amazon EKS Cluster
+- Resource Type: `aws_eks_cluster`
+- Node Count: configurable
+- Purpose: Kubernetes environment for Datadog cluster agent deployment
 
 ### 3. Networking
-- **Virtual Network:** Connects both resources
-- **Subnets:** Dedicated subnets for VM and AKS
-- **Network Security Group:** Controls ingress/egress for VM
+- VPC and public subnet for shared connectivity
+- Internet gateway and route table
+- Security group for VM access controls
 
-### 4. Storage
-- **Storage Account:** For VM diagnostics and logs
-- **Keyvault Secrets:** Stores sensitive identifiers
+### 4. Secret and config storage
+- AWS Secrets Manager stores deployment and configuration metadata
+- Datadog configuration is intentionally separated from resource provisioning values
 
-## Output Values
+## Amazon launch readiness
+The project is now aligned to a launch architecture built around AWS services:
 
-All identifiers are exported via Terraform outputs and stored in a JSON artifact for Datadog deployment workflows:
+- Azure VM -> Amazon EC2
+- Azure AKS -> Amazon EKS
+- Azure Key Vault -> AWS Secrets Manager / SSM Parameter Store
+- Azure OIDC auth -> AWS OIDC / IAM role assumption
+- Azure deployment pipeline -> GitHub Actions with AWS credentials
 
-```json
-{
-  "vm_id": "resource-id",
-  "vm_name": "dti-demo-vm",
-  "vm_private_ip": "10.0.1.x",
-  "aks_cluster_id": "resource-id",
-  "aks_cluster_name": "dti-demo-aks",
-  "aks_api_server": "xxx.hcp.eastus.azmk8s.io",
-  "resource_group": "dti-demo-rg",
-  "kubeconfig_base64": "encoded-config"
-}
-```
+This is the right migration direction for a real Amazon capability story.
 
-## Deployment Flow
+## Deployment flow
 
-1. Terraform initializes and validates configuration
-2. Resources are provisioned in Azure
-3. Outputs are captured and stored as GitHub artifacts
-4. Workflow trigger fires to initiate Datadog deployments
-5. Datadog workflows consume the identifiers from artifacts
+1. Terraform initializes and validates the AWS configuration
+2. Infrastructure is provisioned against the target environment
+3. Outputs expose EC2 and EKS identifiers for automation
+4. Workflow inputs drive environment-specific Datadog values
+5. Deployment scripts validate and install the Datadog agent securely
 
 ## Prerequisites
 
-- Azure Subscription with appropriate permissions
-- Terraform >= 1.0
-- GitHub Secrets configured:
-  - `AZURE_SUBSCRIPTION_ID`
-  - `AZURE_CLIENT_ID`
-  - `AZURE_CLIENT_SECRET`
-  - `AZURE_TENANT_ID`
+- AWS account with appropriate permissions
+- Terraform >= 1.6
+- GitHub secrets configured for AWS OIDC and Datadog installation:
+  - `AWS_ROLE_TO_ASSUME`
+  - `AWS_REGION`
+  - `DATADOG_API_KEY`
+
+## Operational notes
+- Avoid hardcoded values in the repo for production or customer environments
+- Keep environment names, tags, and project metadata in workflow inputs or external configuration
+- Keep the cloud configuration explicit so the service can be launched in Amazon without a large refactor
