@@ -1,7 +1,7 @@
 variable "project_name" {
   type        = string
   description = "Short project name used for AWS resource naming."
-  default     = "bloomerang-demo" #update to bloomerang
+  default     = "bloomerang-demo"
 }
 
 variable "environment" {
@@ -19,35 +19,31 @@ variable "aws_region" {
 variable "aws_account_id" {
   type        = string
   description = "AWS account id associated with the deployment."
-  default     = "017011573822"
+  default     = ""
 }
 
 variable "aws_iam_user_arn" {
   type        = string
   description = "Current IAM user ARN used for local and GitHub-based Terraform access."
-  default     = "arn:aws:iam::017011573822:user/github"
-  sensitive   = true
+  default     = ""
 }
 
 variable "aws_access_key_id" {
   type        = string
   description = "AWS access key used for Terraform authentication. For production, prefer OIDC or IAM role assumptions."
-  default     = "AKIAQH5PYAQ7JJC7SWED"
-  sensitive   = true
+  default     = ""
 }
 
 variable "aws_secret_access_key" {
   type        = string
   description = "AWS secret access key used for Terraform authentication."
-  default     = "rHzH7ggxzDijj/zGDU3OWke8rsFi8EKjCi5vFt1X"
-  sensitive   = true
+  default     = ""
 }
 
 variable "aws_session_token" {
   type        = string
   description = "Optional AWS session token for temporary credentials. Leave blank if not required."
   default     = ""
-  sensitive   = true
 }
 
 variable "vpc_cidr" {
