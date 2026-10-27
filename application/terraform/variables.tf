@@ -64,6 +64,18 @@ variable "subnet_cidr_2" {
   default     = "10.0.2.0/24"
 }
 
+variable "private_subnet_cidr" {
+  type        = string
+  description = "CIDR block for the private subnet in AZ a (EKS nodes)."
+  default     = "10.0.11.0/24"
+}
+
+variable "private_subnet_cidr_2" {
+  type        = string
+  description = "CIDR block for the private subnet in AZ b (EKS nodes)."
+  default     = "10.0.12.0/24"
+}
+
 variable "ec2_instance_type" {
   type        = string
   description = "EC2 instance type for the Datadog VM node."

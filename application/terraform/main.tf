@@ -50,7 +50,8 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-public-subnet-a"
+    Name                     = "${var.project_name}-public-subnet-a"
+    "kubernetes.io/role/elb" = "1"
   })
 }
 
@@ -61,7 +62,8 @@ resource "aws_subnet" "public_2" {
   map_public_ip_on_launch = true
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-public-subnet-b"
+    Name                     = "${var.project_name}-public-subnet-b"
+    "kubernetes.io/role/elb" = "1"
   })
 }
 
@@ -94,6 +96,78 @@ resource "aws_route_table_association" "public" {
 resource "aws_route_table_association" "public_2" {
   subnet_id      = aws_subnet.public_2.id
   route_table_id = aws_route_table.public.id
+}
+
+# ---------------------------------------------------------------------------
+# Private networking: nodes live here and reach the internet only through NAT
+# ---------------------------------------------------------------------------
+resource "aws_subnet" "private" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidr
+  availability_zone = "${var.aws_region}a"
+
+  tags = merge(local.common_tags, {
+    Name                              = "${var.project_name}-private-subnet-a"
+    "kubernetes.io/role/internal-elb" = "1"
+  })
+}
+
+resource "aws_subnet" "private_2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidr_2
+  availability_zone = "${var.aws_region}b"
+
+  tags = merge(local.common_tags, {
+    Name                              = "${var.project_name}-private-subnet-b"
+    "kubernetes.io/role/internal-elb" = "1"
+  })
+}
+
+# Static public address that the NAT gateway presents to the internet
+resource "aws_eip" "nat" {
+  domain = "vpc"
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-nat-eip"
+  })
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+# NAT gateway sits in a PUBLIC subnet (its route table points to the IGW).
+# One gateway keeps dev cost down; production would use one per AZ.
+resource "aws_nat_gateway" "main" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public.id
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-nat"
+  })
+
+  depends_on = [aws_internet_gateway.main]
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main.id
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-private-rt"
+  })
+}
+
+resource "aws_route_table_association" "private" {
+  subnet_id      = aws_subnet.private.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "private_2" {
+  subnet_id      = aws_subnet.private_2.id
+  route_table_id = aws_route_table.private.id
 }
 
 resource "aws_security_group" "demo_vm" {
@@ -218,8 +292,9 @@ resource "aws_eks_cluster" "demo" {
   version  = "1.31"
 
   vpc_config {
-    subnet_ids = [aws_subnet.public.id, aws_subnet.public_2.id]
-    endpoint_public_access = true
+    subnet_ids              = [aws_subnet.private.id, aws_subnet.private_2.id]
+    endpoint_public_access  = true # kept so the GitHub runner can reach the API; restrict with public_access_cidrs
+    endpoint_private_access = true
   }
 
   tags = local.common_tags
@@ -229,7 +304,7 @@ resource "aws_eks_node_group" "demo" {
   cluster_name    = aws_eks_cluster.demo.name
   node_group_name = "${var.project_name}-workers"
   node_role_arn   = aws_iam_role.eks_node.arn
-  subnet_ids      = [aws_subnet.public.id, aws_subnet.public_2.id]
+  subnet_ids      = [aws_subnet.private.id, aws_subnet.private_2.id]
 
   scaling_config {
     desired_size = var.eks_node_count
@@ -243,7 +318,10 @@ resource "aws_eks_node_group" "demo" {
     aws_iam_role_policy_attachment.eks_cluster_policy,
     aws_iam_role_policy_attachment.eks_node_policy,
     aws_iam_role_policy_attachment.eks_cni_policy,
-    aws_iam_role_policy_attachment.eks_registry_policy
+    aws_iam_role_policy_attachment.eks_registry_policy,
+    aws_route_table_association.private,
+    aws_route_table_association.private_2,
+    aws_nat_gateway.main
   ]
 }
 
