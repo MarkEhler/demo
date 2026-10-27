@@ -21,7 +21,7 @@ on:
       project_name:
         description: Project tag value to apply to the agent
         required: true
-        default: dti-demo
+        default: demo
         type: string
 
 permissions:

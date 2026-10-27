@@ -5,7 +5,7 @@ metadata:
   namespace: datadog
 spec:
   global:
-    clusterName: "markehler-demo-aks"
+    clusterName: "demo-eks"
     site: us5.datadoghq.com
     credentials:
       apiSecret:

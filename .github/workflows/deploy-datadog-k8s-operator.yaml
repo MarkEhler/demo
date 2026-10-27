@@ -6,7 +6,7 @@ on:
       cluster_name:
         description: 'EKS Cluster Name'
         required: false
-        default: dti-demo-eks
+        default: demo-eks
 
 permissions:
   id-token: write
@@ -34,7 +34,7 @@ jobs:
 
       - name: Configure kubeconfig from EKS
         run: |
-          CLUSTER_NAME="${{ github.event.inputs.cluster_name || 'dti-demo-eks' }}"
+          CLUSTER_NAME="${{ github.event.inputs.cluster_name || 'demo-eks' }}"
           aws eks update-kubeconfig --region us-east-1 --name "$CLUSTER_NAME"
           kubectl get nodes
 

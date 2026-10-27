@@ -12,26 +12,26 @@ POC MVP
 Demo/
 ├── .github/
 │   └── workflows/
-│       ├── deploy-datadog-k8s.yaml          # Deploy Datadog Agent to AKS
-│       ├── deploy-datadog-vm.yaml           # Deploy Datadog Agent to VM
-│       ├── deploy-hello-world-k8s.yaml      # Deploy hello world pod to AKS
-│       ├── deploy-hello-world-vm.yaml       # Execute hello world script on VM
-│       └── deploy-infrastructure.yaml       # Terraform infrastructure deployment
+│       ├── deploy-datadog-k8s-operator.yaml  # Deploy Datadog Operator + Agent to EKS
+│       ├── deploy-datadog-vm.yaml           # Deploy Datadog Agent to EC2 via SSM
+│       ├── deploy-hello-world-k8s.yaml      # Deploy hello world pod to EKS
+│       ├── deploy-hello-world-vm.yaml       # Run hello world command on EC2 via SSM
+│       └── deploy-infrastructure.yaml       # Terraform infrastructure deployment (AWS)
 │
 ├── application/
 │   ├── readme.md                            # Infrastructure module documentation
 │   │
 │   ├── config/
-│   │   └── datadog.yaml                     # Central Datadog configuration
+│   │   └── develop/datadog.yaml             # Central Datadog configuration
 │   │
 │   ├── deploy/
 │   │   ├── hello-world-vm.sh               # VM validation script
-│   │   ├── hello-world-k8s.yaml            # Kubernetes validation workload
+│   │   ├── hello-world-pod.yaml            # Kubernetes validation workload
 │   │   ├── datadog-agent-values.yaml       # Datadog Helm values
 │   │   └── install-datadog-vm.sh           # Datadog VM installation script
 │   │
 │   └── terraform/
-│      ├── main.tf                         # Azure resources (VM, AKS, networking)
+│      ├── main.tf                         # AWS resources (EC2, EKS, VPC, IAM)
 │      ├── outputs.tf                      # Terraform outputs for workflows
 │      └── variables.tf                    # Terraform input variables
 │
@@ -44,10 +44,10 @@ Demo/
 
 ### Infrastructure (application/terraform/)
 
-* Ubuntu VM for Datadog agent deployment
-* Azure Kubernetes Service (AKS)
-* Virtual networking and NSGs
-* Azure Key Vault for secrets and identifiers
+* Ubuntu 22.04 EC2 instance for Datadog agent deployment
+* Amazon EKS cluster (`demo-eks`) and managed node group
+* VPC, subnets, internet gateway, route tables, and security groups
+* AWS Secrets Manager for configuration identifiers
 
 ### Datadog Configuration (application/config/)
 
@@ -57,7 +57,7 @@ Demo/
   * Datadog site
   * Global tags
   * Feature toggles
-* Shared by both AKS and VM deployments
+* Shared by both EKS and VM deployments
 
 ### Deployment Assets (application/deploy/)
 
@@ -74,7 +74,7 @@ Demo/
 
 ## Notes
 
-* All Azure authentication uses GitHub OIDC.
+* AWS authentication currently uses static credentials stored as GitHub secrets (a demo shortcut). For production, switch to GitHub OIDC with an assumed IAM role (`role-to-assume`).
 * Terraform state should be stored remotely for production use.
 * Datadog configuration should be modified in a single location and consumed by both VM and Kubernetes deployments.
 * Deployment scripts live in `application/deploy/`.

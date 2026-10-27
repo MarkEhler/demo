@@ -27,7 +27,7 @@ jobs:
 
       - name: Get EKS credentials
         run: |
-          aws eks update-kubeconfig --region us-east-1 --name dti-demo-eks
+          aws eks update-kubeconfig --region us-east-1 --name demo-eks
 
       - name: Deploy hello world pod
         run: |

@@ -16,7 +16,7 @@ This makes the project easier to reuse for:
 ### 1. EC2 Virtual Machine
 - Resource Type: `aws_instance`
 - Instance Type: configurable
-- Image: Ubuntu-based Amazon AMI
+- Image: Ubuntu 22.04 LTS (Canonical), resolved with an `aws_ami` data source
 - Purpose: host for Datadog VM agent deployment
 
 ### 2. Amazon EKS Cluster
@@ -56,8 +56,10 @@ This is the right migration direction for a real Amazon capability story.
 
 - AWS account with appropriate permissions
 - Terraform >= 1.6
-- GitHub secrets configured for AWS OIDC and Datadog installation:
-  - `AWS_ROLE_TO_ASSUME`
+- GitHub secrets configured for AWS and Datadog installation:
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
+  - `AWS_SESSION_TOKEN` (if using temporary credentials)
   - `AWS_REGION`
   - `DATADOG_API_KEY`
 

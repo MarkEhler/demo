@@ -1,7 +1,7 @@
 variable "project_name" {
   type        = string
   description = "Short project name used for AWS resource naming."
-  default     = "bloomerang-demo"
+  default     = "demo"
 }
 
 variable "environment" {
@@ -79,7 +79,7 @@ variable "eks_node_count" {
 variable "admin_username" {
   type        = string
   description = "Admin username for the Linux EC2 instance."
-  default     = "ec2-user"
+  default     = "ubuntu"
 }
 
 variable "admin_password" {

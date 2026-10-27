@@ -21,6 +21,6 @@ spec:
           i=0
           while true; do
             i=$((i + 1))
-            echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"level\":\"info\",\"message\":\"Hello World from AKS\",\"iteration\":$i,\"host\":\"$(hostname)\"}"
+            echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"level\":\"info\",\"message\":\"Hello World from EKS\",\"iteration\":$i,\"host\":\"$(hostname)\"}"
             sleep 10
           done

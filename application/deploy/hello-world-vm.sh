@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "Hello world from the Azure VM!"
+echo "Hello world from the EC2 VM!"
 cat <<'EOF' >/tmp/hello-world.txt
 Hello World from the VM!
 EOF

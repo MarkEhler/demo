@@ -16,8 +16,8 @@ orchestratorExplorer: true
 logsEnabled: true
 processMonitoring: true
 
-aks:
-clusterName: MarkEhler-demo-aks
+eks:
+clusterName: demo-eks
 
 vm:
 installMethod: script
